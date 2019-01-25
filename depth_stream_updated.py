@@ -1,7 +1,6 @@
 import pyrealsense2 as rs
-# Import Numpy for easy array manipulation
+
 import numpy as np
-# Import OpenCV for easy image rendering
 import cv2
 
 from scipy.interpolate import splprep, splev
@@ -25,7 +24,7 @@ print("Depth Scale is: " , depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 3 #1 meter
+clipping_distance_in_meters = 2 #1 meter
 clipping_distance = clipping_distance_in_meters / depth_scale
 
 # Create an align object
@@ -72,21 +71,35 @@ try:
 
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        areas = [cv2.contourArea(c) for c in contours]
-        max_index = np.argmax(areas)
-        cnt = contours[max_index]
+        try:
+            areas = [cv2.contourArea(c) for c in contours]
+            max_index = np.argmax(areas)
+            cnt = contours[max_index]
 
-        hull = []
-        hull.append(cv2.convexHull(cnt, False))
+            M = cv2.moments(cnt)
+            cx = int(M['m10']/M['m00'])
+            cy = int(M['m01']/M['m00'])
 
+            extLeft = tuple(cnt[cnt[:, :, 0].argmin()][0])
+            extRight = tuple(cnt[cnt[:, :, 0].argmax()][0])
 
-        cv2.drawContours(color_image, hull, -1, (0,255,0), 3)
+            hull = []
+            hull.append(cv2.convexHull(cnt, False))
+
+            cv2.rectangle(color_image,(extLeft[0]-20,extLeft[1]-20),(extLeft[0]+20,extLeft[1]+20),(0,0,255),2)
+            cv2.rectangle(color_image,(extRight[0]-20,extRight[1]-20),(extRight[0]+20,extRight[1]+20),(0,0,255),2)
+            cv2.circle(color_image,(cx,cy), 10, (0,255,0), -1)
+
+            cv2.drawContours(color_image, hull, -1, (0,255,0), 3)
+            cv2.imshow('Align Example', color_image)
 
         # Render images
         #depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
         #images = np.hstack((bg_removed, depth_colormap))
-        cv2.namedWindow('Align Example', cv2.WINDOW_AUTOSIZE)
-        cv2.imshow('Align Example', color_image)
+
+        except:
+            cv2.namedWindow('Align Example', cv2.WINDOW_AUTOSIZE)
+
         cv2.imshow('Image', thresh)
         key = cv2.waitKey(1)
         # Press esc or 'q' to close the image window
