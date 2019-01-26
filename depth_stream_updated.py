@@ -1,10 +1,6 @@
-#########################
 import pyrealsense2 as rs
-
 import numpy as np
 import cv2
-
-from scipy.interpolate import splprep, splev
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -94,7 +90,7 @@ try:
             cv2.drawContours(color_image, hull, -1, (0,255,0), 3)
             cv2.imshow('Align Example', color_image)
 
-        # Render images
+        #Render images
         #depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
         #images = np.hstack((bg_removed, depth_colormap))
 
