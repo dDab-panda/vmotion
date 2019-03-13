@@ -3,6 +3,7 @@ import os
 import pygame
 import tkFileDialog
 import numpy as np
+import time
 
 master = Tk()
 master.minsize(360,70)
@@ -11,6 +12,7 @@ master.title("vmotion")
 trkno = 0
 songs = []
 
+pygame.init()
 
 dir = "/home/crypto/Music"
 os.chdir(dir)
@@ -21,7 +23,6 @@ print songs
 pygame.mixer.init()
 pygame.mixer.music.load(songs[0])
 
-
 def play():
     global trkname
     global trkno
@@ -31,7 +32,7 @@ def play():
         trkname.set((str(songs[trkno])).replace(".mp3",""))
     else:
         pygame.mixer.music.unpause()
-    
+
 def stop():
     global pi
     pygame.mixer.music.pause()
@@ -46,7 +47,7 @@ def nexttrk():
     pygame.mixer.music.load(songs[trkno])
     pygame.mixer.music.play()
     trkname.set((str(songs[trkno])).replace(".mp3",""))
-    
+
 
 def prevtrk():
     global trkname
@@ -77,16 +78,17 @@ def vold():
 
 
 
-trkname=StringVar()
+
 pi = 0
 vol = 1
-Button(master,text='>>|',command=nexttrk).grid(row=1,column=3,sticky=W,pady=4)
-Button(master,text='|<<',command=prevtrk).grid(row=1,column=0,sticky=W,pady=4)
-Button(master,text='||',command=stop).grid(row=1,column=1,sticky=W,pady=4)
-Button(master,text='>',command=play).grid(row=1,column=2,sticky=W,pady=4)
-Label(master,textvariable=trkname).grid(row=1,column=4)
-Button(master,text=' + ',command=voli).grid(row=2,column=0,sticky=W,pady=4)
-Button(master,text=' - ',command=vold).grid(row=2,column=3,sticky=W,pady=4)
 
+trkname=StringVar()
+
+play()
+
+print "Done"
+time.sleep(5000)
+
+nexttrk()
 
 master.mainloop()
