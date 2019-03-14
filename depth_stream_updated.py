@@ -1,5 +1,10 @@
+from playsound import playsound
+from threading import Thread
+from multiprocessing import Process
 import pyrealsense2 as rs
 import numpy as np
+import time
+import math
 import cv2
 
 # Create a pipeline
@@ -21,7 +26,7 @@ print("Depth Scale is: " , depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 2 #1 meter
+clipping_distance_in_meters = 3 #1 meter
 clipping_distance = clipping_distance_in_meters / depth_scale
 
 # Create an align object
@@ -31,6 +36,19 @@ align_to = rs.stream.color
 align = rs.align(align_to)
 
 kernel = np.ones((5,5),np.uint8)
+
+key = 1
+cx = cy = extTop = extBot = dist = pi = 0
+
+def calculateDistance(x1,y1,x2,y2):
+     dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+     return dist
+
+def music():
+    playsound("cut3.mp3")
+
+
+time.sleep(3)
 
 # Streaming loop
 try:
@@ -68,40 +86,65 @@ try:
 
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        colored_mask = np.zeros(color_image.shape, np.uint8)
+        colored_mask[:] = (0,255,0)
+
+
         try:
             areas = [cv2.contourArea(c) for c in contours]
             max_index = np.argmax(areas)
             cnt = contours[max_index]
 
             M = cv2.moments(cnt)
-            cx = int(M['m10']/M['m00'])
-            cy = int(M['m01']/M['m00'])
+
+            if(key==1):
+                cx = int(M['m10']/M['m00'])
+                cy = int(M['m01']/M['m00'])
+                l = tuple(cnt[cnt[:, :, 0].argmin()][0])
+                r = tuple(cnt[cnt[:, :, 0].argmax()][0])
+                dist1 = calculateDistance(cx, cy, l[0], l[1])
+                dist2 = calculateDistance(cx, cy, r[0], r[1])
+                dist = max(dist1,dist2)
+                # m = Thread(target = music)
+                # m.start()
+                Process(name="playsound", target=music).start()
+                key = 0
+
 
             extLeft = tuple(cnt[cnt[:, :, 0].argmin()][0])
             extRight = tuple(cnt[cnt[:, :, 0].argmax()][0])
 
+
+            myradians1 = math.atan2((cy - extLeft[1]), (extLeft[0] - cx))
+            myradians2 = math.atan2((cy - extRight[1]), (extRight[0] - cx))
+
+            mydegrees1 = math.degrees(myradians1)
+            mydegrees2 = math.degrees(myradians2)
+
+            print mydegrees1, mydegrees2, dist
+
             hull = []
             hull.append(cv2.convexHull(cnt, False))
 
+            color_image = cv2.bitwise_and(colored_mask, colored_mask, mask=thresh)
+
             cv2.rectangle(color_image,(extLeft[0]-20,extLeft[1]-20),(extLeft[0]+20,extLeft[1]+20),(0,0,255),2)
             cv2.rectangle(color_image,(extRight[0]-20,extRight[1]-20),(extRight[0]+20,extRight[1]+20),(0,0,255),2)
-            cv2.circle(color_image,(cx,cy), 10, (0,255,0), -1)
+            cv2.circle(color_image,(cx,cy), 10, (255,255,255), -1)
 
-            cv2.drawContours(color_image, hull, -1, (0,255,0), 3)
+            # cv2.drawContours(color_image, hull, -1, (0,255,0), 3)
+
             cv2.imshow('Align Example', color_image)
 
-        #Render images
-        #depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-        #images = np.hstack((bg_removed, depth_colormap))
 
         except:
             cv2.namedWindow('Align Example', cv2.WINDOW_AUTOSIZE)
 
-        cv2.imshow('Image', thresh)
         key = cv2.waitKey(1)
         # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
             cv2.destroyAllWindows()
             break
+
 finally:
     pipeline.stop()
